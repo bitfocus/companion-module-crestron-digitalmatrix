@@ -1,0 +1,22 @@
+{
+  "name": "crestron-dm",
+  "version": "1.0.0",
+  "description": "",
+  "manufacturer": "Crestron",
+  "product": "DigitalMedia Switcher",
+  "shortname": "dm",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Elliott C. Balsley <ebalsley@netflix.com>",
+  "license": "MIT",
+  "bugs": {
+		"url": "https://github.com/bitfocus/companion-module-crestron-digitalmatrix/issues"
+  },
+  "homepage": "https://github.com/bitfocus/companion-module-crestron-digitalmatrix#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bitfocus/companion-module-crestron-digitalmatrix.git"
+  }
+}
