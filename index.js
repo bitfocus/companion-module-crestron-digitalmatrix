@@ -60,7 +60,39 @@ class instance extends instance_skel {
 				this.debug('Connected')
 			})
 
-			this.socket.on('data', (data) => {})
+			this.socket.on('data', (data) => {
+				let response = data.toString()
+				this.debug('Response: ' + JSON.stringify(response))
+				if (response.endsWith(' was blocked.\r\n')) {
+					this.log('error', response)
+					// stop trying to reconnect until config is updated
+					this.socket.options.reconnect = false
+				}
+				
+				// login if credentials are configured
+				else if (response.endsWith('Login: ')) {
+					if (this.config.authentication == false || this.config.username == '' || this.config.password == '' ) {
+						this.log('error', 'Crestron DM requires authentication')
+						// stop trying to reconnect until config is updated
+						this.socket.options.reconnect = false
+					}
+					let sendBuf = Buffer.from(this.config.username + '\r\n', 'latin1')
+					if (this.socket !== undefined && this.socket.connected) {
+						this.socket.send(sendBuf)
+					} else {
+						this.debug('Socket not connected :(')
+					}
+				}
+
+				else if (response == 'Password: ') {
+					let sendBuf = Buffer.from(this.config.password + '\r\n', 'latin1')
+					if (this.socket !== undefined && this.socket.connected) {
+						this.socket.send(sendBuf)
+					} else {
+						this.debug('Socket not connected :(')
+					}
+				}
+			})
 		}
 	}
 
@@ -93,7 +125,29 @@ class instance extends instance_skel {
 					{ id: '16', label: 'DM-MD16x16' },
 					{ id: '32', label: 'DM-MD32x32' }
 				],
-			}
+			},
+			{
+				type: 'checkbox',
+				label: 'Authentication',
+				id: 'authentication',
+				default: false
+			},
+			{
+				type: 'textinput',
+				id: 'username',
+				label: 'Username',
+				width: 6,
+				default: '',
+				isVisible: (configValues) => configValues.authentication === true,
+			},
+			{
+				type: 'textinput',
+				id: 'password',
+				label: 'Password',
+				width: 6,
+				default: '',
+				isVisible: (configValues) => configValues.authentication === true,
+			},
 		]
 	}
 
@@ -168,7 +222,6 @@ class instance extends instance_skel {
 				})
 				dst = parseInt(dst) + 100
 				cmd = 'SETAVROUTE ' + src + ' ' + dst + '\r\n'
-				this.debug(cmd)
 				break
 		}
 
@@ -179,15 +232,12 @@ class instance extends instance_skel {
 		 * and destroys the 'binary' content
 		 */
 		let sendBuf = Buffer.from(cmd, 'latin1')
+		this.debug('sending ', JSON.stringify(cmd), 'to', this.config.host)
 
-		if (sendBuf != '') {
-			this.debug('sending ', sendBuf, 'to', this.config.host)
-
-			if (this.socket !== undefined && this.socket.connected) {
-				this.socket.send(sendBuf)
-			} else {
-				this.debug('Socket not connected :(')
-			}
+		if (this.socket !== undefined && this.socket.connected) {
+			this.socket.send(sendBuf)
+		} else {
+			this.debug('Socket not connected :(')
 		}
 	}
 }
