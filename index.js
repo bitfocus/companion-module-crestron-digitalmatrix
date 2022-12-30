@@ -14,6 +14,8 @@ class instance extends instance_skel {
 		super(system, id, config)
 		this.actions() // export actions
 		this.init_presets() // export presets
+		this.sources = []
+		this.destinations = []
 	}
 
 	updateConfig(config) {
@@ -58,6 +60,15 @@ class instance extends instance_skel {
 			this.socket.on('connect', () => {
 				this.status(this.STATE_OK)
 				this.debug('Connected')
+
+				// refresh source/destination lists according to router model
+				this.sources = []
+				this.destinations = []
+				for (let i = 1; i <= parseInt(this.config.model); i++) {
+					this.sources.push({id: i, label: i})
+					this.destinations.push({id: 100+i, label: i})
+				}
+				this.actions()
 			})
 
 			this.socket.on('data', (data) => {
@@ -175,32 +186,14 @@ class instance extends instance_skel {
 						id: 'id_src',
 						label: 'Source number:',
 						width: 2,
-						choices: [
-							{id: '1', label: '1'},
-							{id: '2', label: '2'},
-							{id: '3', label: '3'},
-							{id: '4', label: '4'},
-							{id: '5', label: '5'},
-							{id: '6', label: '6'},
-							{id: '7', label: '7'},
-							{id: '8', label: '8'},
-						]
+						choices: this.sources
 					},
 					{
 						type: 'dropdown',
 						id: 'id_dst',
 						label: 'Destination number:',
 						width: 2,
-						choices: [
-							{id: '1', label: '1'},
-							{id: '2', label: '2'},
-							{id: '3', label: '3'},
-							{id: '4', label: '4'},
-							{id: '5', label: '5'},
-							{id: '6', label: '6'},
-							{id: '7', label: '7'},
-							{id: '8', label: '8'},
-						]
+						choices: this.destinations
 					},
 				],
 			},
@@ -220,7 +213,6 @@ class instance extends instance_skel {
 				this.parseVariables(action.options.id_dst, (value) => {
 					dst = decodeURI(value);
 				})
-				dst = parseInt(dst) + 100
 				cmd = 'SETAVROUTE ' + src + ' ' + dst + '\r\n'
 				break
 		}
