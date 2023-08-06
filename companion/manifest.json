@@ -1,0 +1,28 @@
+{
+	"id": "crestron-digitalmatrix",
+	"name": "crestron-digitalmatrix",
+	"shortname": "dm",
+	"description": "",
+	"version": "0.0.0",
+	"license": "MIT",
+	"repository": "git+https://github.com/bitfocus/companion-module-crestron-digitalmatrix.git",
+	"bugs": "https://github.com/bitfocus/companion-module-crestron-digitalmatrix/issues",
+	"maintainers": [
+		{
+			"name": "Elliott C. Balsley",
+			"email": "ebalsley@netflix.com"
+		}
+	],
+	"legacyIds": [],
+	"runtime": {
+		"type": "node18",
+		"api": "nodejs-ipc",
+		"apiVersion": "0.0.0",
+		"entrypoint": "../index.js"
+	},
+	"manufacturer": "Crestron",
+	"products": [
+		"DigitalMedia Switcher"
+	],
+	"keywords": []
+}
