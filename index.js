@@ -1,6 +1,9 @@
-import { InstanceBase, InstanceStatus, runEntrypoint, TCPHelper } from '@companion-module/base'
+import { InstanceBase, InstanceStatus, runEntrypoint, TCPHelper, combineRgb } from '@companion-module/base'
 import { ConfigFields } from './config.js'
 import { getActionDefinitions } from './actions.js'
+import { initFeedbacks } from './feedbacks.js'
+import { initPresets } from './presets.js'
+
 
 class CrestronInstance extends InstanceBase {
 	async init(config) {
@@ -21,7 +24,9 @@ class CrestronInstance extends InstanceBase {
 		}
 
 		this.config = config
-
+		
+		this.setPresetDefinitions(initPresets(this));
+		this.routes = {}; // Reset routes object
 		this.init_tcp()
 		this.init_tcp_variables()
 	}
@@ -59,7 +64,7 @@ class CrestronInstance extends InstanceBase {
 
 		this.updateStatus(InstanceStatus.Connecting)
 
-		if (this.config.host) {
+		if (this.config.host && this.config.offset !== undefined) {
 			this.socket = new TCPHelper(this.config.host, this.config.port)
 
 			this.socket.on('status_change', (status, message) => {
@@ -72,20 +77,23 @@ class CrestronInstance extends InstanceBase {
 			})
 
 			this.socket.on('data', (data) => {
-				if (this.config.saveresponse) {
-					let dataResponse = data
-
-					if (this.config.convertresponse == 'string') {
-						dataResponse = data.toString()
-					} else if (this.config.convertresponse == 'hex') {
-						dataResponse = data.toString('hex')
-					}
-
-					this.setVariableValues({ tcp_response: dataResponse })
+				let response = data
+				response = data.toString()
+				
+				this.setVariableValues({ tcp_response: response })
+				
+				//this.log('debug', 'Response: ' + JSON.stringify(response))
+				
+				// process routes for dumpdmrouteinfo feedback
+				const regex = /VideoSwitch - Out(\d+)->In(\d+)/g;
+				let match;
+				while ((match = regex.exec(JSON.stringify(response))) !== null) {
+					let output = parseInt(match[1]);
+					let input = parseInt(match[2]);
+					this.routes[output] = input;
 				}
-
-				let response = data.toString()
-				// this.log('debug', 'Response: ' + JSON.stringify(response))
+				this.log('debug', JSON.stringify(this.routes))
+				
 				if (response.endsWith(' was blocked.\r\n')) {
 					this.log('error', response)
 					// stop trying to reconnect until config is updated
@@ -120,15 +128,18 @@ class CrestronInstance extends InstanceBase {
 			this.socket.on('connect', () => {
 				this.updateStatus(InstanceStatus.Ok)
 				this.log('debug', 'Connected')
-
+				this.sendToCrestron('timedate ' + this.getFormattedDateTime()) // optional. send current Date and Time
+				this.getRouting()
 				// refresh source/destination lists according to router model
 				this.sources = []
 				this.destinations = []
+				this.sources.push({id: 0, label: 'Off'})
 				for (let i = 1; i <= parseInt(this.config.model); i++) {
 					this.sources.push({id: i, label: i})
-					this.destinations.push({id: 100+i, label: i})
+					this.destinations.push({id: this.config.offset + i, label: i})
 				}
 				this.setActionDefinitions(getActionDefinitions(this))
+				this.setFeedbackDefinitions(initFeedbacks(this));
 			})
 		} else {
 			this.updateStatus(InstanceStatus.BadConfig)
@@ -140,6 +151,35 @@ class CrestronInstance extends InstanceBase {
 
 		this.setVariableValues({ tcp_response: '' })
 	}
+	
+	
+	async getRouting() {
+		const cmd = 'dumpdmrouteinfo'
+		this.sendToCrestron(cmd)
+		await new Promise(resolve => setTimeout(resolve, 500));
+		this.checkFeedbacks();
+	}
+	
+	getFormattedDateTime() {
+    const now = new Date();
+    const time = now.toLocaleTimeString('de-DE', { hour12: false });
+    const date = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
+    return `${time} ${date}`;
+}
+	
 }
 
 runEntrypoint(CrestronInstance, [])
+
+/*
+other interesting commands:
+hidhelp all
+
+setfplockout on / off
+getfplockout
+message string / no parameter = restore previous display
+shortmessage like above but with 2s timeout
+
+fan
+saveparam
+*/
