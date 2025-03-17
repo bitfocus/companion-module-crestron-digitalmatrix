@@ -5,7 +5,7 @@ export function initPresets(instance) {
 		presets['crestronDM'] = {
 			type: 'button',
 			category: 'Routing',
-			name: 'Route Input to Output and read current routes for feedback',
+			name: 'Route AV Input to Output and read current route for feedback',
 			style: {
 				text: 'Input\\n->\\nOutput',
 				textExpression: false,
@@ -22,11 +22,12 @@ export function initPresets(instance) {
 				{
 					down: [
 						{
-							actionId: 'routeav',
+							actionId: 'route',
 							delay: 0,
 							options: {
 								id_dst: 1,
-								id_src: 1
+								id_src: 1,
+								id_type: 'SETAVROUTE'
 							},
 						},
 					],
@@ -34,10 +35,11 @@ export function initPresets(instance) {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'input_routing',
+					feedbackId: 'ouput_routing',
 					options: {
 						input: 1,
-						output: 17
+						output: 17,
+						id_type: 'Video'
 					},
 					style: {bgcolor: combineRgb(0, 0, 0)},
 					isInverted: false,
