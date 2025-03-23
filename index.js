@@ -177,7 +177,7 @@ class CrestronInstance extends InstanceBase {
 		//	this.sources = []
 		//	this.destinations = []
 		//	this.sources.push({id: 0, label: 'Off'})
-		//	for (let i = 1; i <= parseInt(modelMatch[1]); i++) {
+		//	for (let i = 1; i <= parseInt(modelMatch[1], 10); i++) {
 		//		this.sources.push({id: i, label: i})
 		//		this.destinations.push({id: this.config.offset + i, label: i})
 		//	}
@@ -217,8 +217,8 @@ class CrestronInstance extends InstanceBase {
 		let IOregex = /VideoSwitch - Out(\d+)->In(\d+)/g;
 		let match;
 		while ((match = IOregex.exec(JSON.stringify(response))) !== null) {
-			let output = parseInt(match[1]);
-			let input = parseInt(match[2]);
+			let output = parseInt(match[1], 10);
+			let input = parseInt(match[2], 10);
 			this.routingMatrix.push({Slot: output, Video: input})
 		}
 		//this.log('debug', JSON.stringify(this.routes))
@@ -270,10 +270,10 @@ class CrestronInstance extends InstanceBase {
 				this.variableValues['tcp_response'] = '';
 			}
 			routesMatches.forEach(match => {
-				const slot = parseInt(match[1]);
-				const video = parseInt(match[2])
-				const audio = parseInt(match[3])
-				const usb = parseInt(match[4])
+				const slot = parseInt(match[1], 10);
+				const video = parseInt(match[2] ?? 0, 10);
+				const audio = parseInt(match[3] ?? 0, 10);
+				const usb = parseInt(match[4] ?? 0, 10);
 			
 				this.log('debug', `Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`);
 				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb };
