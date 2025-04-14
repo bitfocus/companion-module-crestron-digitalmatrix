@@ -25,7 +25,7 @@ export function initPresets(instance) {
 							actionId: 'route',
 							delay: 0,
 							options: {
-								id_dst: 1,
+								id_dst: self.destinations?.[0].id,
 								id_src: 1,
 								id_type: 'SETAVROUTE'
 							},
@@ -35,10 +35,10 @@ export function initPresets(instance) {
 			],
 			feedbacks: [
 				{
-					feedbackId: 'ouput_routing',
+					feedbackId: 'output_routing',
 					options: {
 						input: 1,
-						output: 17,
+						output: self.destinations?.[0].id,
 						id_type: 'Video'
 					},
 					style: {bgcolor: combineRgb(0, 0, 0)},

@@ -28,7 +28,6 @@ class CrestronInstance extends InstanceBase {
 
 		this.config = config
 		
-		this.setPresetDefinitions(initPresets(this));
 		this.sources = []		// Reset sources
 		this.sources.push({id: 0, label: 'Off'})
 		this.destinations = []	// Reset destinations
@@ -271,9 +270,9 @@ class CrestronInstance extends InstanceBase {
 			}
 			routesMatches.forEach(match => {
 				const slot = parseInt(match[1], 10);
-				const video = parseInt(match[2] ?? 0, 10);
-				const audio = parseInt(match[3] ?? 0, 10);
-				const usb = parseInt(match[4] ?? 0, 10);
+				const video = parseInt(match[2] ?? 0, 10)
+				const audio = parseInt(match[3] ?? 0, 10)
+				const usb = parseInt(match[4] ?? 0, 10)
 			
 				this.log('debug', `Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`);
 				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb };
@@ -305,6 +304,7 @@ class CrestronInstance extends InstanceBase {
 				//this.log('debug', 'Variables: ' + JSON.stringify(this.variableDefinitions))
 				this.setVariableDefinitions(this.variableDefinitions);
 				this.setFeedbackDefinitions(initFeedbacks(this));
+				this.setPresetDefinitions(initPresets(this));
 				this.firstRun = false
 			}
 			this.setVariableValues(this.variableValues);
