@@ -25,8 +25,8 @@ export const upgradeScripts = [
 				result.updatedFeedbacks.push(feedback);
 			}
 		}
-		console.log('🔄 Aktualisierte Actions:', JSON.stringify(result.updatedActions, null, 2));
-		console.log('🔄 Aktualisierte Feedbacks:', JSON.stringify(result.updatedFeedbacks, null, 2));
+		console.log('Upgraded Actions:', JSON.stringify(result.updatedActions, null, 2));
+		console.log('Upgraded Feedbacks:', JSON.stringify(result.updatedFeedbacks, null, 2));
 		
 		return result
 	},
