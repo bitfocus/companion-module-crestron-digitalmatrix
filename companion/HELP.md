@@ -1,6 +1,6 @@
 ## Crestron Digital Matrix module
 
-A rudimentary module for controlling Crestron Digital Matrix.  Tested with DM-MD8x8 only, but I think it should also work with the 16 and 32.
+A rudimentary module for controlling Crestron Digital Matrix. Tested with DM-MD8x8 only, but I think it should also work with the 16 and 32. 
 
 This sends TCP commands to port 23.  You must enable telnet on the Crestron device.  
 Response will appear in debug log for troubleshooting purposes.  
