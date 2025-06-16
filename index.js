@@ -5,17 +5,22 @@ import { initFeedbacks } from './feedbacks.js'
 import { initPresets } from './presets.js'
 import { upgradeScripts } from './upgrade.js'
 
-
 class CrestronInstance extends InstanceBase {
+	// Heartbeat properties
+	heartbeatTimer = null
+	heartbeatTimeoutTimer = null
+	lastHeartbeat = Date.now()
+	HEARTBEAT_TIMEOUT = 10000 // ms
+
 	async init(config) {
 		this.config = config
-		
+
 		this.setActionDefinitions(getActionDefinitions(this))
 
 		await this.configUpdated(config)
 
 		this.sources = []
-		this.sources.push({id: 0, label: 'Off'})
+		this.sources.push({ id: 0, label: 'Off' })
 		this.destinations = []
 		this.routingMatrix = {}
 	}
@@ -27,11 +32,11 @@ class CrestronInstance extends InstanceBase {
 		}
 
 		this.config = config
-		
-		this.sources = []		// Reset sources
-		this.sources.push({id: 0, label: 'Off'})
-		this.destinations = []	// Reset destinations
-		this.routingMatrix = {}	// Reset routes object
+
+		this.sources = [] // Reset sources
+		this.sources.push({ id: 0, label: 'Off' })
+		this.destinations = [] // Reset destinations
+		this.routingMatrix = {} // Reset routes object
 		this.variableValues = {}
 		this.variableDefinitions = []
 
@@ -39,8 +44,9 @@ class CrestronInstance extends InstanceBase {
 	}
 
 	async destroy() {
+		this.stopHeartbeat()
 		if (this.socket) {
-			sendToCrestron("bye") //logout correctly to avoid open terminals
+			sendToCrestron('bye') //logout correctly to avoid open terminals
 			this.socket.destroy()
 		} else {
 			this.updateStatus(InstanceStatus.Disconnected)
@@ -54,13 +60,13 @@ class CrestronInstance extends InstanceBase {
 
 	sendToCrestron(msg) {
 		let sendBuf = Buffer.from(msg + '\r\n', 'latin1')
-        this.log('info', 'sending to ' + this.config.host + ': ' + sendBuf.toString())
-    
-        if (this.socket !== undefined && this.socket.isConnected) {
-            this.socket.send(sendBuf)
-        } else {
-            this.log('info', 'Socket not connected :(')
-        }
+		this.log('info', 'sending to ' + this.config.host + ': ' + sendBuf.toString())
+
+		if (this.socket !== undefined && this.socket.isConnected) {
+			this.socket.send(sendBuf)
+		} else {
+			this.log('info', 'Socket not connected :(')
+		}
 	}
 
 	init_tcp() {
@@ -86,49 +92,108 @@ class CrestronInstance extends InstanceBase {
 
 			this.socket.on('data', (data) => {
 				//this.log('debug', 'received chunk: ' + data)
-				
-				if (typeof this.socketBuffer === 'undefined') {	// make sure the buffer is initialized
-					this.socketBuffer = '';
+
+				if (typeof this.socketBuffer === 'undefined') {
+					// make sure the buffer is initialized
+					this.socketBuffer = ''
 				}
-				
-				this.socketBuffer += data.toString();	// Save data as string (if it comes in as buffer)
-				let endMarkerRegex = /DM-MD\d+x\d+>/;  // detect complete response
-				
+
+				this.socketBuffer += data.toString() // Save data as string (if it comes in as buffer)
+				let endMarkerRegex = /DM-MD\d+x\d+>/ // detect complete response
+
 				if (endMarkerRegex.test(this.socketBuffer)) {
 					this.log('debug', 'response: ' + this.socketBuffer)
-					this.parseResponse(this.socketBuffer);
+					this.parseResponse(this.socketBuffer)
 					if (this.config.saveresponse) {
 						this.setVariableValues({ tcp_response: this.socketBuffer })
 					}
-					this.socketBuffer = '';  // empty buffer after processing
+					this.socketBuffer = '' // empty buffer after processing
+					// Heartbeat: If we get any data
+					this.lastHeartbeat = Date.now()
+					this.resetHeartbeatTimeout()
 				}
-			});
+			})
 
 			this.socket.on('connect', () => {
 				this.updateStatus(InstanceStatus.Connecting)
-				this.log('debug', 'Websocket connected')	//Connection to Matrix not given
-				
-				this.sendToCrestron('timedate ' + this.getFormattedDateTime()); // optional. send current Date and Time
-				this.getRouting(); // get routes and update feedbacks
+				this.log('debug', 'Websocket connected') //Connection to Matrix not given
+
+				this.sendToCrestron('timedate ' + this.getFormattedDateTime()) // optional. send current Date and Time
+				this.getRouting() // get routes and update feedbacks
 			})
 		} else {
 			this.updateStatus(InstanceStatus.BadConfig)
 		}
-	}	
-	
+	}
+
 	async getRouting() {
 		const cmd = 'dumpdmrouteinfo'
 		this.sendToCrestron(cmd)
-		await new Promise(resolve => setTimeout(resolve, 500));
-		this.checkFeedbacks();
+		await new Promise((resolve) => setTimeout(resolve, 500))
+		this.checkFeedbacks()
 	}
-	
+
 	getFormattedDateTime() {
-		const now = new Date();
-		const time = now.toLocaleTimeString('de-DE', { hour12: false });
-		const date = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
-		return `${time} ${date}`;
-}
+		const now = new Date()
+		const time = now.toLocaleTimeString('de-DE', { hour12: false })
+		const date = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
+		return `${time} ${date}`
+	}
+
+	// Heartbeat methods
+	//--------------------------
+	startHeartbeat() {
+		this.stopHeartbeat()
+		this.heartbeatTimer = setInterval(() => {
+			this.sendHeartbeat()
+		}, this.config.pollInterval)
+		this.resetHeartbeatTimeout()
+	}
+
+	stopHeartbeat() {
+		if (this.heartbeatTimer) {
+			clearInterval(this.heartbeatTimer)
+			this.heartbeatTimer = null
+		}
+		if (this.heartbeatTimeoutTimer) {
+			clearTimeout(this.heartbeatTimeoutTimer)
+			this.heartbeatTimeoutTimer = null
+		}
+	}
+
+	sendHeartbeat() {
+		this.getRouting()
+		this.resetHeartbeatTimeout()
+	}
+
+	resetHeartbeatTimeout() {
+		if (this.heartbeatTimeoutTimer) {
+			clearTimeout(this.heartbeatTimeoutTimer)
+		}
+		this.heartbeatTimeoutTimer = setTimeout(() => {
+			this.onHeartbeatTimeout()
+		}, this.HEARTBEAT_TIMEOUT)
+	}
+
+	onHeartbeatTimeout() {
+		this.updateStatus(InstanceStatus.ConnectionFailure, 'Heartbeat lost, reconnecting...')
+		this.stopHeartbeat()
+		if (this.socket) {
+			this.socket.destroy()
+			delete this.socket
+		}
+		setTimeout(() => {
+			this.init_tcp()
+		}, 5000)
+	}
+
+	onConnected() {
+		this.updateStatus(InstanceStatus.Ok)
+		if (this.config.pollInterval > 0) {
+			this.log('info', 'Starting heartbeat with interval: ' + this.config.pollInterval + ' ms')
+			this.startHeartbeat()
+		}
+	}
 
 	parseResponse(response) {
 		// **Blocked client**:
@@ -139,51 +204,48 @@ class CrestronInstance extends InstanceBase {
 		}
 		// **Login if credentials are configured**:
 		if (response.match(/Login: /)) {
-			if (this.config.authentication == false || this.config.username == '' || this.config.password == '' ) {
+			if (this.config.authentication == false || this.config.username == '' || this.config.password == '') {
 				this.log('error', 'Crestron DM requires authentication')
 				// stop trying to reconnect until config is updated
 				this.socket.options.reconnect = false
-			}
-			else {
+			} else {
 				this.log('info', 'Authentication required')
 				this.log('info', 'sending username')
 				this.sendToCrestron(this.config.username)
 			}
 		}
-		
+
 		if (response == 'Password: ') {
 			this.log('info', 'sending password')
 			let sendBuf = Buffer.from(this.config.password + '\r\n', 'latin1')
 			this.log('info', 'sending to ' + this.config.host + ': xxxxxxxx')
-		
+
 			if (this.socket !== undefined && this.socket.isConnected) {
 				this.socket.send(sendBuf)
 			} else {
 				this.log('info', 'Socket not connected :(')
 			}
 		}
-		
-		
+
 		// **Matrix Model & successful connection**:
 		// interpret welcome message as successful connection and read Matrix model
 		// for sources and destinations lists
-		
-		const modelMatch = response.match(/DM-MD(\d{1,2})x\d{1,2} Control Console\r\n*/);
+
+		const modelMatch = response.match(/DM-MD(\d{1,2})x\d{1,2} Control Console\r\n*/)
 		if (modelMatch) {
-			this.log('info', 'Connected to: ' + modelMatch[0]);
-			this.updateStatus(InstanceStatus.Ok)
-		//	// refresh source/destination lists according to router model
-		//	this.sources = []
-		//	this.destinations = []
-		//	this.sources.push({id: 0, label: 'Off'})
-		//	for (let i = 1; i <= parseInt(modelMatch[1], 10); i++) {
-		//		this.sources.push({id: i, label: i})
-		//		this.destinations.push({id: this.config.offset + i, label: i})
-		//	}
-		//	this.log('info', 'destinations ' + JSON.stringify(this.destinations))
+			this.log('info', 'Connected to: ' + modelMatch[0])
+			this.onConnected()
+			//	// refresh source/destination lists according to router model
+			//	this.sources = []
+			//	this.destinations = []
+			//	this.sources.push({id: 0, label: 'Off'})
+			//	for (let i = 1; i <= parseInt(modelMatch[1], 10); i++) {
+			//		this.sources.push({id: i, label: i})
+			//		this.destinations.push({id: this.config.offset + i, label: i})
+			//	}
+			//	this.log('info', 'destinations ' + JSON.stringify(this.destinations))
 		}
-		
-		
+
 		// **Matrix Model**:
 		// dumpdmstreaminfo
 		// read first output stream number for output offset
@@ -209,7 +271,7 @@ class CrestronInstance extends InstanceBase {
 		Number Of Groups 1 
 		Local Loop back outputs per stream  1
 		*/
-		
+
 		// process routes for dumpdmrouteinfo feedback
 		//the easy way - just for reference
 		/*
@@ -222,8 +284,7 @@ class CrestronInstance extends InstanceBase {
 		}
 		//this.log('debug', JSON.stringify(this.routes))
 		*/
-		
-		
+
 		// **Routing Matrix**:
 		// dumpdmrouteinfo
 		// read all routes and create list for sources and destinations
@@ -256,67 +317,65 @@ class CrestronInstance extends InstanceBase {
 		Hot plug is Low  
 		VideoSwitch - Out8->In0
 		*/
-		
-		let RoutesRegex = /Routing Information for Output Card at Slot (\d{1,2}).*\r\n.*Video(?:.*?(\d{1,2}))?.*\r\n.*Audio(?:.*?(\d{1,2}))?.*\r\n.*USB(?:.*?(\d{1,2}))?.*/g;
-		const routesMatches = [...response.matchAll(RoutesRegex)]; // Umwandlung in Array für einfaches Handling
+
+		let RoutesRegex =
+			/Routing Information for Output Card at Slot (\d{1,2}).*\r\n.*Video(?:.*?(\d{1,2}))?.*\r\n.*Audio(?:.*?(\d{1,2}))?.*\r\n.*USB(?:.*?(\d{1,2}))?.*/g
+		const routesMatches = [...response.matchAll(RoutesRegex)] // Umwandlung in Array für einfaches Handling
 		let i = 1
-		
+
 		if (routesMatches && routesMatches.length > 0) {
 			if (!this.variableDefinitions || Object.keys(this.variableDefinitions).length === 0) {
-				this.log('info','First run! Variables have to be defined.')
+				this.log('info', 'First run! Variables have to be defined.')
 				this.firstRun = true
-				this.variableDefinitions.push({ name: 'Last TCP Response', variableId: 'tcp_response' });
-				this.variableValues['tcp_response'] = '';
+				this.variableDefinitions.push({ name: 'Last TCP Response', variableId: 'tcp_response' })
+				this.variableValues['tcp_response'] = ''
 			}
-			routesMatches.forEach(match => {
-				const slot = parseInt(match[1], 10);
+			routesMatches.forEach((match) => {
+				const slot = parseInt(match[1], 10)
 				const video = parseInt(match[2] ?? 0, 10)
 				const audio = parseInt(match[3] ?? 0, 10)
 				const usb = parseInt(match[4] ?? 0, 10)
-			
-				this.log('debug', `Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`);
-				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb };
+
+				this.log('debug', `Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`)
+				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb }
 				if (this.firstRun) {
 					this.variableDefinitions.push({
 						name: `Output ${i} Video routed from Input`,
-						variableId: `RouteOut${slot}Video`
-					});
+						variableId: `RouteOut${slot}Video`,
+					})
 					this.variableDefinitions.push({
 						name: `Output ${i} Audio routed from Input`,
-						variableId: `RouteOut${slot}Audio`
-					});
+						variableId: `RouteOut${slot}Audio`,
+					})
 					this.variableDefinitions.push({
 						name: `Output ${i} USB routed from Input`,
-						variableId: `RouteOut${slot}USB`
-					});
+						variableId: `RouteOut${slot}USB`,
+					})
 				}
-				this.variableValues[`RouteOut${slot}Video`] = video;
-				this.variableValues[`RouteOut${slot}Audio`] = audio;
-				this.variableValues[`RouteOut${slot}USB`] = usb;
-				this.sources.push({id: i, label: i})
-				this.destinations.push({id: slot, label: i})
+				this.variableValues[`RouteOut${slot}Video`] = video
+				this.variableValues[`RouteOut${slot}Audio`] = audio
+				this.variableValues[`RouteOut${slot}USB`] = usb
+				this.sources.push({ id: i, label: i })
+				this.destinations.push({ id: slot, label: i })
 				i++
-			});
+			})
 			//this.log('info', 'Routing Matrix: ' + JSON.stringify(this.routingMatrix, null, 2));
 			if (this.firstRun) {
-				this.log('debug', 'Sources: ' + JSON.stringify(this.sources));
-				this.log('debug', 'Destinations: ' + JSON.stringify(this.destinations));
+				this.log('debug', 'Sources: ' + JSON.stringify(this.sources))
+				this.log('debug', 'Destinations: ' + JSON.stringify(this.destinations))
 				//this.log('debug', 'Variables: ' + JSON.stringify(this.variableDefinitions))
-				this.setVariableDefinitions(this.variableDefinitions);
-				this.setFeedbackDefinitions(initFeedbacks(this));
-				this.setPresetDefinitions(initPresets(this));
+				this.setVariableDefinitions(this.variableDefinitions)
+				this.setFeedbackDefinitions(initFeedbacks(this))
+				this.setPresetDefinitions(initPresets(this))
 				this.firstRun = false
 			}
-			this.setVariableValues(this.variableValues);
+			this.setVariableValues(this.variableValues)
 			this.setActionDefinitions(getActionDefinitions(this))
 		}
-		
 	}
-	
 }
 
 runEntrypoint(CrestronInstance, upgradeScripts)
-
 
 /*
 other interesting commands:

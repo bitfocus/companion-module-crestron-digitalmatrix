@@ -21,8 +21,6 @@
 		"entrypoint": "../index.js"
 	},
 	"manufacturer": "Crestron",
-	"products": [
-		"DigitalMedia Switcher"
-	],
+	"products": ["DigitalMedia Switcher"],
 	"keywords": []
 }
