@@ -110,7 +110,9 @@ class CrestronInstance extends InstanceBase {
 					this.socketBuffer = '' // empty buffer after processing
 					// Heartbeat: If we get any data
 					this.lastHeartbeat = Date.now()
-					this.resetHeartbeatTimeout()
+					if (this.heartbeatTimeoutTimer) {
+						this.resetHeartbeatTimeout()
+					}
 				}
 			})
 
