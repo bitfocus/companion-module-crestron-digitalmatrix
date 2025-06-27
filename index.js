@@ -102,7 +102,7 @@ class CrestronInstance extends InstanceBase {
 				let endMarkerRegex = /DM-MD\d+x\d+>/ // detect complete response
 
 				if (endMarkerRegex.test(this.socketBuffer)) {
-					this.log('debug', 'response: ' + this.socketBuffer)
+					if (this.config.debugLogging) this.log('debug', 'response: ' + this.socketBuffer)
 					this.parseResponse(this.socketBuffer)
 					if (this.config.saveresponse) {
 						this.setVariableValues({ tcp_response: this.socketBuffer })
@@ -118,7 +118,7 @@ class CrestronInstance extends InstanceBase {
 
 			this.socket.on('connect', () => {
 				this.updateStatus(InstanceStatus.Connecting)
-				this.log('debug', 'Websocket connected') //Connection to Matrix not given
+				if (this.config.debugLogging) this.log('debug', 'Websocket connected') //Connection to Matrix not given
 
 				this.sendToCrestron('timedate ' + this.getFormattedDateTime()) // optional. send current Date and Time
 				this.getRouting() // get routes and update feedbacks
@@ -327,7 +327,7 @@ class CrestronInstance extends InstanceBase {
 
 		if (routesMatches && routesMatches.length > 0) {
 			if (!this.variableDefinitions || Object.keys(this.variableDefinitions).length === 0) {
-				this.log('info', 'First run! Variables have to be defined.')
+				this.log('debug', 'First run! Variables have to be defined.')
 				this.firstRun = true
 				this.variableDefinitions.push({ name: 'Last TCP Response', variableId: 'tcp_response' })
 				this.variableValues['tcp_response'] = ''
@@ -365,14 +365,14 @@ class CrestronInstance extends InstanceBase {
 			if (this.firstRun) {
 				this.log('debug', 'Sources: ' + JSON.stringify(this.sources))
 				this.log('debug', 'Destinations: ' + JSON.stringify(this.destinations))
-				//this.log('debug', 'Variables: ' + JSON.stringify(this.variableDefinitions))
+				this.log('debug', 'Variables: ' + JSON.stringify(this.variableDefinitions))
 				this.setVariableDefinitions(this.variableDefinitions)
 				this.setFeedbackDefinitions(initFeedbacks(this))
 				this.setPresetDefinitions(initPresets(this))
+				this.setActionDefinitions(getActionDefinitions(this))
 				this.firstRun = false
 			}
 			this.setVariableValues(this.variableValues)
-			this.setActionDefinitions(getActionDefinitions(this))
 		}
 	}
 }

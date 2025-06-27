@@ -48,4 +48,11 @@ export const ConfigFields = [
 		max: 10000,
 		step: 100,
 	},
+	{
+		type: 'checkbox',
+		id: 'debugLogging',
+		label: 'Log extra info during connection operations, for debugging purposes',
+		default: false,
+		width: 6,
+	},
 ]

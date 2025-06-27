@@ -38,7 +38,7 @@ export function initFeedbacks(instance) {
 				},
 			],
 			callback: (feedback) => {
-				self.log(
+				if (self.config.debugLogging) self.log(
 					'debug',
 					`Feedback Values:: Input: ${feedback.options.input}, Output: ${feedback.options.output}, Type: ${feedback.options.id_type}`,
 				)
@@ -49,7 +49,7 @@ export function initFeedbacks(instance) {
 				// Select route value type using the selected type
 				const routeValue = fSlot ? fSlot[feedback.options.id_type] : null
 
-				self.log(
+				if (self.config.debugLogging) self.log(
 					'debug',
 					`${feedback.options.id_type} Route for Output ${feedback.options.output}: Input ${routeValue}  result: ` +
 						(routeValue === feedback.options.input),
