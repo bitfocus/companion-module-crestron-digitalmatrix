@@ -15,7 +15,7 @@ class CrestronInstance extends InstanceBase {
 	async init(config) {
 		this.config = config
 
-		this.setActionDefinitions(getActionDefinitions(this))
+		//this.setActionDefinitions(getActionDefinitions(this))
 
 		await this.configUpdated(config)
 
@@ -119,9 +119,6 @@ class CrestronInstance extends InstanceBase {
 			this.socket.on('connect', () => {
 				this.updateStatus(InstanceStatus.Connecting)
 				if (this.config.debugLogging) this.log('debug', 'Websocket connected') //Connection to Matrix not given
-
-				this.sendToCrestron('timedate ' + this.getFormattedDateTime()) // optional. send current Date and Time
-				this.getRouting() // get routes and update feedbacks
 			})
 		} else {
 			this.updateStatus(InstanceStatus.BadConfig)
@@ -140,6 +137,31 @@ class CrestronInstance extends InstanceBase {
 		const time = now.toLocaleTimeString('de-DE', { hour12: false })
 		const date = now.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })
 		return `${time} ${date}`
+	}
+
+	getDestinationLabel(destinations, id) {
+		const dest = destinations.find((d) => d.id == id)
+		return dest ? dest.label : undefined
+	}
+	getDestinationSlot(destinations, label) {
+		const dest = destinations.find((d) => d.label == label)
+		return dest ? dest.id : undefined
+	}
+	// Get the slot ID by label from the destinations array
+	// awaits the output number (label) and returns the slot ID
+	async getSlotOrFallback(value, fallback, array, logLabel = 'Value') {
+		if (value && !isNaN(value)) {
+			if (this.config.debugLogging) this.log('debug', `${logLabel} is a number: ${value}, looking for slot ID in array.`)
+			value = parseInt(value, 10) // Convert to integer if it's a number
+			if (this.config.debugLogging) this.log('debug', `Converted ${logLabel} to integer: ${value}`)
+			//value = await this.getDestinationSlot(array, value) // get the slotID by label from this.destinations
+			if (this.config.debugLogging) this.log('debug', `Looking for slot ID in array: ${JSON.stringify(array)}`)
+			value = array.find((d) => d.label == value)?.id || fallback // find the slot ID by label, or fallback
+			return value
+		} else {
+			this.log('warn', `${logLabel} is not a number, or variable not found: ${value}, fallback to dropdown value: ${fallback}`)
+			return fallback
+		}
 	}
 
 	// Heartbeat methods
@@ -189,8 +211,13 @@ class CrestronInstance extends InstanceBase {
 		}, 5000)
 	}
 
-	onConnected() {
+	onConnected(deviceModel) {
 		this.updateStatus(InstanceStatus.Ok)
+		this.log('info', 'Connected to: ' + deviceModel[0])
+		this.sendToCrestron('timedate ' + this.getFormattedDateTime()) // optional. send current Date and Time
+		this.sendToCrestron('dumpdmstreaminfo') // optional. get Matrix model and stream info
+		this.getRouting() // get routes and update feedbacks
+
 		if (this.config.pollInterval > 0) {
 			this.log('info', 'Starting heartbeat with interval: ' + this.config.pollInterval + ' ms')
 			this.startHeartbeat()
@@ -235,8 +262,7 @@ class CrestronInstance extends InstanceBase {
 
 		const modelMatch = response.match(/DM-MD(\d{1,2})x\d{1,2} Control Console\r\n*/)
 		if (modelMatch) {
-			this.log('info', 'Connected to: ' + modelMatch[0])
-			this.onConnected()
+			this.onConnected(modelMatch)
 			//	// refresh source/destination lists according to router model
 			//	this.sources = []
 			//	this.destinations = []
@@ -274,22 +300,10 @@ class CrestronInstance extends InstanceBase {
 		Local Loop back outputs per stream  1
 		*/
 
-		// process routes for dumpdmrouteinfo feedback
-		//the easy way - just for reference
-		/*
-		let IOregex = /VideoSwitch - Out(\d+)->In(\d+)/g;
-		let match;
-		while ((match = IOregex.exec(JSON.stringify(response))) !== null) {
-			let output = parseInt(match[1], 10);
-			let input = parseInt(match[2], 10);
-			this.routingMatrix.push({Slot: output, Video: input})
-		}
-		//this.log('debug', JSON.stringify(this.routes))
-		*/
-
 		// **Routing Matrix**:
 		// dumpdmrouteinfo
 		// read all routes and create list for sources and destinations
+		// only inserted output cards are listed!
 		/*
 		DM Routing Information for all Output cards 
 		Routing Information for Input Card at Slot 1 
@@ -320,27 +334,41 @@ class CrestronInstance extends InstanceBase {
 		VideoSwitch - Out8->In0
 		*/
 
+		//the easy way - just for reference
+		/*
+		let IOregex = /VideoSwitch - Out(\d+)->In(\d+)/g;
+		let match;
+		while ((match = IOregex.exec(JSON.stringify(response))) !== null) {
+			let output = parseInt(match[1], 10);
+			let input = parseInt(match[2], 10);
+			this.routingMatrix.push({Slot: output, Video: input})
+		}
+		//this.log('debug', JSON.stringify(this.routes))
+		*/
+
 		let RoutesRegex =
 			/Routing Information for Output Card at Slot (\d{1,2}).*\r\n.*Video(?:.*?(\d{1,2}))?.*\r\n.*Audio(?:.*?(\d{1,2}))?.*\r\n.*USB(?:.*?(\d{1,2}))?.*/g
-		const routesMatches = [...response.matchAll(RoutesRegex)] // Umwandlung in Array für einfaches Handling
+		const routesMatches = [...response.matchAll(RoutesRegex)] // Convert to array for easier handling
 		let i = 1
 
 		if (routesMatches && routesMatches.length > 0) {
 			if (!this.variableDefinitions || Object.keys(this.variableDefinitions).length === 0) {
-				this.log('debug', 'First run! Variables have to be defined.')
+				this.log('debug', 'First run! In-/Outputs and variables have to be defined.')
 				this.firstRun = true
 				this.variableDefinitions.push({ name: 'Last TCP Response', variableId: 'tcp_response' })
 				this.variableValues['tcp_response'] = ''
 			}
+			// parsing the output routes
 			routesMatches.forEach((match) => {
 				const slot = parseInt(match[1], 10)
 				const video = parseInt(match[2] ?? 0, 10)
 				const audio = parseInt(match[3] ?? 0, 10)
 				const usb = parseInt(match[4] ?? 0, 10)
 
-				this.log('debug', `Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`)
+				this.log('debug', `Out: ${i}, Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`)
 				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb }
 				if (this.firstRun) {
+					// Define variables for each output, assuming the first output is 1 and following outputs are sequential
 					this.variableDefinitions.push({
 						name: `Output ${i} Video routed from Input`,
 						variableId: `RouteOut${slot}Video`,
@@ -357,10 +385,21 @@ class CrestronInstance extends InstanceBase {
 				this.variableValues[`RouteOut${slot}Video`] = video
 				this.variableValues[`RouteOut${slot}Audio`] = audio
 				this.variableValues[`RouteOut${slot}USB`] = usb
-				this.sources.push({ id: i, label: i })
 				this.destinations.push({ id: slot, label: i })
 				i++
 			})
+			if (this.firstRun) {
+				// Parse available input slots
+				let InputRegex =
+					/Routing Information for Input Card at Slot (\d{1,2}).*\r\n/g
+				const inputMatches = [...response.matchAll(InputRegex)] // Convert to array for easier handling
+				if (inputMatches && inputMatches.length > 0) {
+					inputMatches.forEach((inputMatch) => {
+						const inputSlot = parseInt(inputMatch[1], 10)
+						this.sources.push({ id: inputSlot, label: inputSlot })
+					})
+				}
+			}
 			//this.log('info', 'Routing Matrix: ' + JSON.stringify(this.routingMatrix, null, 2));
 			if (this.firstRun) {
 				this.log('debug', 'Sources: ' + JSON.stringify(this.sources))
