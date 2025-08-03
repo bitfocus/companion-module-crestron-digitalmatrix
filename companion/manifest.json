@@ -22,5 +22,5 @@
 	},
 	"manufacturer": "Crestron",
 	"products": ["DigitalMedia Switcher"],
-	"keywords": ["DM8x8", "DM16x16", "Matrix Switcher", "AV Switch"]
+	"keywords": ["DM8x8", "DM16x16", "DM32x32", "Matrix Switcher", "AV Switch"]
 }
