@@ -151,7 +151,8 @@ class CrestronInstance extends InstanceBase {
 	// awaits the output number (label) and returns the slot ID
 	async getSlotOrFallback(value, fallback, array, logLabel = 'Value') {
 		if (value && !isNaN(value)) {
-			if (this.config.debugLogging) this.log('debug', `${logLabel} is a number: ${value}, looking for slot ID in array.`)
+			if (this.config.debugLogging)
+				this.log('debug', `${logLabel} is a number: ${value}, looking for slot ID in array.`)
 			value = parseInt(value, 10) // Convert to integer if it's a number
 			if (this.config.debugLogging) this.log('debug', `Converted ${logLabel} to integer: ${value}`)
 			//value = await this.getDestinationSlot(array, value) // get the slotID by label from this.destinations
@@ -159,7 +160,10 @@ class CrestronInstance extends InstanceBase {
 			value = array.find((d) => d.label == value)?.id || fallback // find the slot ID by label, or fallback
 			return value
 		} else {
-			this.log('warn', `${logLabel} is not a number, or variable not found: ${value}, fallback to dropdown value: ${fallback}`)
+			this.log(
+				'warn',
+				`${logLabel} is not a number, or variable not found: ${value}, fallback to dropdown value: ${fallback}`,
+			)
 			return fallback
 		}
 	}
@@ -390,8 +394,7 @@ class CrestronInstance extends InstanceBase {
 			})
 			if (this.firstRun) {
 				// Parse available input slots
-				let InputRegex =
-					/Routing Information for Input Card at Slot (\d{1,2}).*\r\n/g
+				let InputRegex = /Routing Information for Input Card at Slot (\d{1,2}).*\r\n/g
 				const inputMatches = [...response.matchAll(InputRegex)] // Convert to array for easier handling
 				if (inputMatches && inputMatches.length > 0) {
 					inputMatches.forEach((inputMatch) => {

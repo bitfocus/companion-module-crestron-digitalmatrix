@@ -87,8 +87,8 @@ export function getActionDefinitions(self) {
 					id_src = action.options.id_src
 				}
 
-    			const cmd = `${id_type} ${id_src} ${id_dst}`
-    			self.sendToCrestron(cmd)
+				const cmd = `${id_type} ${id_src} ${id_dst}`
+				self.sendToCrestron(cmd)
 
 				await new Promise((resolve) => setTimeout(resolve, 1000))
 				self.getRouting() // update routes variable for feedback. changes other than from Stream Deck (e.g. frontpanel) are not taken into account

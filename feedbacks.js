@@ -93,10 +93,7 @@ export function initFeedbacks(instance) {
 				}
 
 				if (self.config.debugLogging)
-					self.log(
-						'debug',
-						`Feedback Values:: Input: ${input}, Output: ${output}, Type: ${feedback.options.id_type}`,
-					)
+					self.log('debug', `Feedback Values:: Input: ${input}, Output: ${output}, Type: ${feedback.options.id_type}`)
 
 				// Find chosen output slot in routingMatrix
 				const fSlot = self.routingMatrix[output]
