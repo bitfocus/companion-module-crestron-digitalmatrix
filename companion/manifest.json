@@ -3,7 +3,7 @@
 	"name": "crestron-digitalmatrix",
 	"shortname": "dm",
 	"description": "",
-	"version": "2.0.0",
+	"version": "2.1.0",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-crestron-digitalmatrix.git",
 	"bugs": "https://github.com/bitfocus/companion-module-crestron-digitalmatrix/issues",
@@ -21,8 +21,6 @@
 		"entrypoint": "../index.js"
 	},
 	"manufacturer": "Crestron",
-	"products": [
-		"DigitalMedia Switcher"
-	],
-	"keywords": []
+	"products": ["DigitalMedia Switcher"],
+	"keywords": ["DM8x8", "DM16x16", "DM32x32", "Matrix Switcher", "AV Switch"]
 }
