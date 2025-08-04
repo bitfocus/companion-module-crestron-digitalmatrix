@@ -3,7 +3,7 @@
 	"name": "crestron-digitalmatrix",
 	"shortname": "dm",
 	"description": "",
-	"version": "2.1.0",
+	"version": "2.1.2",
 	"license": "MIT",
 	"repository": "git+https://github.com/bitfocus/companion-module-crestron-digitalmatrix.git",
 	"bugs": "https://github.com/bitfocus/companion-module-crestron-digitalmatrix/issues",
