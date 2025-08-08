@@ -26,7 +26,11 @@ export function initPresets(instance) {
 						delay: 0,
 						options: {
 							id_dst: self.destinations?.[0].id,
+							id_dst_var_cbx: false,
+							id_dst_var: '',
 							id_src: 1,
+							id_src_var_cbx: false,
+							id_src_var: '',
 							id_type: 'SETAVROUTE',
 						},
 					},
@@ -38,7 +42,11 @@ export function initPresets(instance) {
 				feedbackId: 'output_routing',
 				options: {
 					input: 1,
+					input_var_cbx: false,
+					input_var: '',
 					output: self.destinations?.[0].id,
+					output_var_cbx: false,
+					output_var: '',
 					id_type: 'Video',
 				},
 				style: { bgcolor: combineRgb(0, 0, 0) },

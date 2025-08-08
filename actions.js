@@ -71,8 +71,8 @@ export function getActionDefinitions(self) {
 					if (this.config.debugLogging) self.log('debug', `Destination dropdown (fallback): ${action.options.id_dst}`)
 					if (this.config.debugLogging) self.log('debug', `Destination variable: ${action.options.id_dst_var}`)
 					id_dst = await self.parseVariablesInString(action.options.id_dst_var)
-					id_dst = await self.getSlotOrFallback(id_dst, action.options.id_dst, self.destinations, 'Destination')
-					if (this.config.debugLogging) self.log('debug', `After getSlotOrFallback: ${id_dst}`)
+					id_dst = await self.getSlotOrOff(id_dst, self.destinations, 'Destination')
+					if (this.config.debugLogging) self.log('debug', `After getSlotOrOff: ${id_dst}`)
 				} else {
 					id_dst = action.options.id_dst
 				}
@@ -81,8 +81,8 @@ export function getActionDefinitions(self) {
 					if (this.config.debugLogging) self.log('debug', `Source dropdown (fallback): ${action.options.id_src}`)
 					if (this.config.debugLogging) self.log('debug', `Source variable: ${action.options.id_src_var}`)
 					id_src = await self.parseVariablesInString(action.options.id_src_var)
-					id_src = await self.getSlotOrFallback(id_src, action.options.id_src, self.sources, 'Source')
-					if (this.config.debugLogging) self.log('debug', `After getSlotOrFallback: ${id_src}`)
+					id_src = await self.getSlotOrOff(id_src, self.sources, 'Source')
+					if (this.config.debugLogging) self.log('debug', `After getSlotOrOff: ${id_src}`)
 				} else {
 					id_src = action.options.id_src
 				}

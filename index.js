@@ -148,23 +148,20 @@ class CrestronInstance extends InstanceBase {
 		return dest ? dest.id : undefined
 	}
 	// Get the slot ID by label from the destinations array
-	// awaits the output number (label) and returns the slot ID
-	async getSlotOrFallback(value, fallback, array, logLabel = 'Value') {
+	// awaits the output number (as label) and returns the slot ID
+	async getSlotOrOff(value, array, logLabel = 'Value') {
 		if (value && !isNaN(value)) {
-			if (this.config.debugLogging)
-				this.log('debug', `${logLabel} is a number: ${value}, looking for slot ID in array.`)
+			if (this.config.debugLogging) this.log('debug', `${logLabel} is a number: "${value}"`)
 			value = parseInt(value, 10) // Convert to integer if it's a number
 			if (this.config.debugLogging) this.log('debug', `Converted ${logLabel} to integer: ${value}`)
 			//value = await this.getDestinationSlot(array, value) // get the slotID by label from this.destinations
-			if (this.config.debugLogging) this.log('debug', `Looking for slot ID in array: ${JSON.stringify(array)}`)
-			value = array.find((d) => d.label == value)?.id || fallback // find the slot ID by label, or fallback
+			if (this.config.debugLogging)
+				this.log('debug', `Looking in labels for slot ID in array, or fallback to 0 (off): ${JSON.stringify(array)}`)
+			value = array.find((d) => d.label == value)?.id || 0 // Find the slot ID by label, default to 0 if not found
 			return value
 		} else {
-			this.log(
-				'warn',
-				`${logLabel} is not a number, or variable not found: ${value}, fallback to dropdown value: ${fallback}`,
-			)
-			return fallback
+			this.log('warn', `${logLabel} is not a number, or variable not found: "${value}", fallback to 0 (off)`)
+			return 0
 		}
 	}
 
@@ -369,20 +366,20 @@ class CrestronInstance extends InstanceBase {
 				const audio = parseInt(match[3] ?? 0, 10)
 				const usb = parseInt(match[4] ?? 0, 10)
 
-				this.log('debug', `Out: ${i}, Slot: ${slot}, Video: ${video}, Audio: ${audio}, USB: ${usb}`)
+				this.log('debug', `Out ${i} (Slot ${slot}): Video: ${video}, Audio: ${audio}, USB: ${usb}`)
 				this.routingMatrix[slot] = { Video: video, Audio: audio, USB: usb }
 				if (this.firstRun) {
 					// Define variables for each output, assuming the first output is 1 and following outputs are sequential
 					this.variableDefinitions.push({
-						name: `Output ${i} Video routed from Input`,
+						name: `Output ${i} (Slot ${slot}) Video routed from Input`,
 						variableId: `RouteOut${slot}Video`,
 					})
 					this.variableDefinitions.push({
-						name: `Output ${i} Audio routed from Input`,
+						name: `Output ${i} (Slot ${slot}) Audio routed from Input`,
 						variableId: `RouteOut${slot}Audio`,
 					})
 					this.variableDefinitions.push({
-						name: `Output ${i} USB routed from Input`,
+						name: `Output ${i} (Slot ${slot}) USB routed from Input`,
 						variableId: `RouteOut${slot}USB`,
 					})
 				}

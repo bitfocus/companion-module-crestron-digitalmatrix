@@ -70,14 +70,15 @@ export function initFeedbacks(instance) {
 					default: self.sources[0].id, // Default to the first source
 				},
 			],
-			callback: async (feedback) => {
+			callback: async (feedback, context) => {
 				let input, output
 				if (feedback.options.output_var_cbx) {
 					if (self.config.debugLogging) self.log('debug', `Output dropdown (fallback): ${feedback.options.output}`)
 					if (self.config.debugLogging) self.log('debug', `Output variable: ${feedback.options.output_var}`)
-					output = await self.parseVariablesInString(feedback.options.output_var)
-					output = await self.getSlotOrFallback(output, feedback.options.output, self.destinations, 'Output')
-					if (self.config.debugLogging) self.log('debug', `After getSlotOrFallback: ${output}`)
+					output = await context.parseVariablesInString(feedback.options.output_var)
+					if (self.config.debugLogging) self.log('debug', `Parsed output: ${output}`)
+					output = await self.getSlotOrOff(output, self.destinations, 'Output')
+					if (self.config.debugLogging) self.log('debug', `After getSlotOrOff: ${output}`)
 				} else {
 					output = feedback.options.output
 				}
@@ -85,9 +86,10 @@ export function initFeedbacks(instance) {
 				if (feedback.options.input_var_cbx) {
 					if (self.config.debugLogging) self.log('debug', `Input dropdown (fallback): ${feedback.options.input}`)
 					if (self.config.debugLogging) self.log('debug', `Input variable: ${feedback.options.input_var}`)
-					input = await self.parseVariablesInString(feedback.options.input_var)
-					input = await self.getSlotOrFallback(input, feedback.options.input, self.sources, 'Input')
-					if (self.config.debugLogging) self.log('debug', `After getSlotOrFallback: ${input}`)
+					input = await context.parseVariablesInString(feedback.options.input_var)
+					if (self.config.debugLogging) self.log('debug', `Parsed input: ${input}`)
+					input = await self.getSlotOrOff(input, self.sources, 'Input')
+					if (self.config.debugLogging) self.log('debug', `After getSlotOrOff: ${input}`)
 				} else {
 					input = feedback.options.input
 				}
