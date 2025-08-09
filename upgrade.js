@@ -39,13 +39,15 @@ export const upgradeScripts = [
 		}
 		console.log('Upgrade script v2.1.0 running...')
 		// console.log('Upgrading config:', props.config)
-		if (props.config.pollInterval === undefined) {
-			props.config.pollInterval = 0
-			result.updatedConfig = props.config
-		}
-		if (props.config.debugLogging === undefined) {
-			props.config.debugLogging = false
-			result.updatedConfig = props.config
+		if (props.config && typeof props.config === 'object') {
+			if (props.config.pollInterval === undefined) {
+				props.config.pollInterval = 0
+				result.updatedConfig = props.config
+			}
+			if (props.config.debugLogging === undefined) {
+				props.config.debugLogging = false
+				result.updatedConfig = props.config
+			}
 		}
 		// console.log('Upgrading actions:', props.actions)
 		for (const action of props.actions) {

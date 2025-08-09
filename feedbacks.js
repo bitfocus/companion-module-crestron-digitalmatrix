@@ -19,7 +19,7 @@ export function initFeedbacks(instance) {
 					choices: [
 						{ id: 'Video', label: 'Video' },
 						{ id: 'Audio', label: 'Audio' },
-						{ id: 'usb', label: 'USB' },
+						{ id: 'USB', label: 'USB' },
 					],
 					default: 'Video',
 				},
@@ -99,7 +99,8 @@ export function initFeedbacks(instance) {
 
 				// Find chosen output slot in routingMatrix
 				const fSlot = self.routingMatrix[output]
-
+				if (self.config.debugLogging)
+					self.log('debug', `Feedback Slot: ${JSON.stringify(fSlot)}`)
 				// Select route value type using the selected type
 				const routeValue = fSlot ? fSlot[feedback.options.id_type] : null
 
