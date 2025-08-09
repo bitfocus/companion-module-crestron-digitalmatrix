@@ -8,7 +8,7 @@ Authentication is optional. On my DM, the user requires at least OPERATOR or hig
 
 If you try the wrong password a few times in a row, your IP may get blocked. You'll need to unblock it using Crestron Toolbox. This module will stop attempting to reconnect until you save the config with a new password.
 
-It detects available inputs and outputs to select via dropdown, but you can also enter custom input or output number, or use a variable with the input or output number. (feedbacks are not reread on variable change!)
+It detects available inputs and outputs to select via dropdown, but you can also enter custom input or output number, or use a variable with the input or output number.
 This enables you to setup pages to set manual routes via action "internal: Custom Variable: Set raw value" or the generic dataentry module.
 
 Upon successful connection time and date is sent to the system.
